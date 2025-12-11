@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>AuraPlan</title>
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#F8FAFC" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="AuraPlan" />
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Shadows+Into+Light&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        /* Light Mode: Soft Slate & Clean White (Modern/Aesthetic) */
+        /* Replaced Cornsilk/Rose Ebony with a cleaner, higher contrast palette */
+        --bg-primary: 248, 250, 252; /* Slate 50 - Very clean, soft white/grey */
+        --text-primary: 30, 41, 59;  /* Slate 800 - Sharp, readable dark blue-grey */
+        --card-bg: 51, 65, 85;       /* Slate 700 - Used for glass effect shadows */
+        --accent-color: 79, 70, 229; /* Indigo - For highlights */
+      }
+
+      [data-theme='dark'] {
+        /* Dark Mode: Liver & Pale Goldenrod (Retained as requested previously, or adjusted slightly for contrast) */
+        --bg-primary: 40, 35, 30;    /* Darkened for better contrast */
+        --text-primary: 238, 232, 170;
+        --card-bg: 238, 232, 170;
+        --accent-color: 238, 232, 170;
+      }
+
+      body {
+        font-family: 'Shadows Into Light', cursive;
+        background-color: rgb(var(--bg-primary));
+        color: rgb(var(--text-primary));
+        transition: background-color 0.5s ease, color 0.5s ease;
+        overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(var(--text-primary), 0.2);
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(var(--text-primary), 0.4);
+      }
+      
+      .glass-panel {
+        background: rgba(var(--card-bg), 0.05);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(var(--text-primary), 0.08);
+      }
+      
+      input, select, textarea {
+        font-family: 'Inter', sans-serif;
+      }
+      
+      /* Mobile optimization classes */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.1/",
+    "react": "https://esm.sh/react@^19.2.1",
+    "lucide-react": "https://esm.sh/lucide-react@^0.560.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.1/",
+    "date-fns": "https://esm.sh/date-fns@^4.1.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
