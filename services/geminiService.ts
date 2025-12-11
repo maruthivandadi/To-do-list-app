@@ -1,11 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { TimetableResponse } from "../types";
 
-// Robust API Key retrieval for various environments (Vite, CRA, Vercel)
+// Robust API Key retrieval for various environments
 const getApiKey = () => {
   let key = "";
 
-  // 1. Try Vite (most likely for this project structure on Vercel)
+  // 1. Try Vite (common in Vercel deployments)
   try {
     // @ts-ignore
     if (typeof import.meta !== 'undefined' && import.meta.env) {
@@ -16,31 +16,31 @@ const getApiKey = () => {
 
   if (key) return key;
 
-  // 2. Try Standard Process Env (CRA / Next.js / Node)
+  // 2. Try Standard Process Env (CRA, Next.js, Node)
   try {
     if (typeof process !== 'undefined' && process.env) {
-      key = process.env.REACT_APP_API_KEY || process.env.API_KEY || "";
+      key = process.env.REACT_APP_API_KEY || process.env.NEXT_PUBLIC_API_KEY || process.env.API_KEY || "";
     }
   } catch (e) {}
 
   return key;
 };
 
-const GEMINI_API_KEY = getApiKey();
-
-// Initialize AI only if key exists to prevent immediate crash, handle check inside function
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY || "dummy_key_to_prevent_init_crash" });
-
 export const extractScheduleFromImage = async (
   base64Data: string,
   mimeType: string
 ): Promise<TimetableResponse> => {
-  // Check key at runtime when action is performed
-  if (!getApiKey() || getApiKey() === "dummy_key_to_prevent_init_crash") {
+  const apiKey = getApiKey();
+
+  // Check key at runtime
+  if (!apiKey || apiKey === "dummy_key_to_prevent_init_crash") {
     throw new Error(
-      "API Key is missing. In Vercel Settings > Environment Variables, add a new variable with Name: 'VITE_API_KEY' and Value: 'Your AIza... key'."
+      "API_KEY_MISSING" 
     );
   }
+
+  // Initialize AI instance here to ensure we use the current key
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
     const response = await ai.models.generateContent({
@@ -104,6 +104,9 @@ export const extractScheduleFromImage = async (
     
   } catch (error: any) {
     console.error("Error extracting schedule:", error);
+    if (error.message.includes("403") || error.message.includes("API key")) {
+         throw new Error("INVALID_API_KEY");
+    }
     throw new Error(error.message || "Failed to analyze image.");
   }
 };
