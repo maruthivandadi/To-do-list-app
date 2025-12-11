@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { ClassSession, Todo } from '../types';
 import { format } from 'date-fns';
-import { Bell, BookOpen, CalendarDays, Edit3, X, Save, CheckCircle, Circle } from 'lucide-react';
+import { Bell, BellRing, BookOpen, CalendarDays, Edit3, X, Save, CheckCircle, Circle } from 'lucide-react';
 
 interface DashboardProps {
   classes: ClassSession[];
@@ -13,6 +13,10 @@ const Dashboard: React.FC<DashboardProps> = ({ classes, todos, onUpdateTodos }) 
   const [todayClasses, setTodayClasses] = useState<ClassSession[]>([]);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [editParams, setEditParams] = useState({ text: '' });
+  
+  // Notification State
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notifiedClasses, setNotifiedClasses] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const today = format(new Date(), 'EEEE');
@@ -20,6 +24,56 @@ const Dashboard: React.FC<DashboardProps> = ({ classes, todos, onUpdateTodos }) 
     currentClasses.sort((a, b) => parseInt(a.startTime.replace(':', '')) - parseInt(b.startTime.replace(':', '')));
     setTodayClasses(currentClasses);
   }, [classes]);
+
+  // Request Notification Permissions
+  useEffect(() => {
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        setNotificationsEnabled(true);
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          setNotificationsEnabled(permission === 'granted');
+        });
+      }
+    }
+  }, []);
+
+  // Reminder Logic: Check every minute
+  useEffect(() => {
+    if (!notificationsEnabled) return;
+
+    const checkSchedule = () => {
+      const now = new Date();
+      const currentH = now.getHours();
+      const currentM = now.getMinutes();
+      
+      todayClasses.forEach(session => {
+        if (notifiedClasses.has(session.id)) return;
+
+        const [startH, startM] = session.startTime.split(':').map(Number);
+        const timeDiffMinutes = (startH * 60 + startM) - (currentH * 60 + currentM);
+
+        // Notify if class starts in 10 minutes or less (but is in the future)
+        if (timeDiffMinutes > 0 && timeDiffMinutes <= 10) {
+           try {
+             new Notification(`Upcoming: ${session.subject}`, {
+               body: `Starts in ${timeDiffMinutes} minutes at ${session.startTime}${session.room ? ` in Room ${session.room}` : ''}`,
+               icon: 'https://cdn-icons-png.flaticon.com/512/3652/3652191.png'
+             });
+             setNotifiedClasses(prev => new Set(prev).add(session.id));
+           } catch (e) {
+             console.error("Notification failed", e);
+           }
+        }
+      });
+    };
+
+    const interval = setInterval(checkSchedule, 60000); // Check every minute
+    checkSchedule(); // Initial check
+
+    return () => clearInterval(interval);
+  }, [todayClasses, notificationsEnabled, notifiedClasses]);
+
 
   const now = new Date();
   const currentHour = now.getHours();
@@ -52,6 +106,13 @@ const Dashboard: React.FC<DashboardProps> = ({ classes, todos, onUpdateTodos }) 
       <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-4xl md:text-5xl font-bold mb-2">Today's Overview</h1>
+          <div className="flex items-center gap-2 text-sm opacity-60">
+             {notificationsEnabled ? (
+                 <span className="flex items-center gap-1 text-green-600 font-medium bg-green-500/10 px-2 py-1 rounded-full"><BellRing className="w-3 h-3" /> Reminders On</span>
+             ) : (
+                 <span className="flex items-center gap-1 cursor-pointer hover:underline" onClick={() => Notification.requestPermission()}><Bell className="w-3 h-3" /> Enable Reminders</span>
+             )}
+          </div>
         </div>
         <div className="text-left md:text-right mt-2 md:mt-0">
             <div className="text-3xl font-bold opacity-80">
@@ -185,7 +246,7 @@ const Dashboard: React.FC<DashboardProps> = ({ classes, todos, onUpdateTodos }) 
                         ))
                     )}
                     
-                    {/* Recently Completed (Optional, just to show they are done) */}
+                    {/* Recently Completed */}
                     {todos.filter(t => t.completed).length > 0 && (
                         <div className="pt-4 border-t border-[rgba(var(--text-primary),0.1)] opacity-60">
                             <h4 className="text-sm font-bold mb-2 uppercase tracking-widest">Completed</h4>

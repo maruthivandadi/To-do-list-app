@@ -70,6 +70,15 @@ const TodoList: React.FC<TodoListProps> = ({ todos, setTodos }) => {
     return sorted;
   };
 
+  const getCategoryStyles = (category: string) => {
+    switch (category) {
+        case 'urgent': return { stripe: 'bg-red-500', badge: 'bg-red-500/10 text-red-600' };
+        case 'study': return { stripe: 'bg-blue-500', badge: 'bg-blue-500/10 text-blue-600' };
+        case 'personal': 
+        default: return { stripe: 'bg-green-500', badge: 'bg-green-500/10 text-green-600' };
+    }
+  };
+
   const visibleTodos = getSortedTodos();
 
   return (
@@ -132,55 +141,59 @@ const TodoList: React.FC<TodoListProps> = ({ todos, setTodos }) => {
                 <p className="text-xl">Your list is empty.</p>
             </div>
         )}
-        {visibleTodos.map((todo) => (
-          <div
-            key={todo.id}
-            className={`group flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl border transition-all duration-300 ${
-              todo.completed
-                ? 'bg-[rgba(var(--card-bg),0.05)] border-transparent opacity-50'
-                : 'glass-panel hover:border-[rgba(var(--text-primary),0.3)]'
-            }`}
-          >
-            <button onClick={() => toggleTodo(todo.id)} className="flex-shrink-0 hover:opacity-70 transition-opacity p-1">
-              {todo.completed ? <CheckCircle className="w-5 h-5 md:w-6 md:h-6 opacity-60" /> : <Circle className="w-5 h-5 md:w-6 md:h-6" />}
-            </button>
-            
-            <div className="flex-1 min-w-0">
-              <p className={`text-lg md:text-xl truncate ${todo.completed ? 'line-through' : ''}`}>
-                {todo.text}
-              </p>
-              <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <span className={`text-[10px] md:text-xs px-2 py-0.5 rounded-full uppercase tracking-wider font-bold opacity-70 ${
-                      todo.category === 'urgent' ? 'bg-red-500/20 text-red-600' : 
-                      todo.category === 'study' ? 'bg-blue-500/20 text-blue-600' : 'bg-green-500/20 text-green-600'
-                  }`}>
-                    {todo.category}
-                  </span>
-                  {todo.dueDate && (
-                    <span className="flex items-center gap-1 text-[10px] md:text-xs opacity-50 font-mono">
-                       <Calendar className="w-3 h-3" />
-                       {format(new Date(todo.dueDate), 'MMM d, h:mm a')}
-                    </span>
-                  )}
-              </div>
-            </div>
+        {visibleTodos.map((todo) => {
+          const styles = getCategoryStyles(todo.category);
+          
+          return (
+            <div
+                key={todo.id}
+                className={`group relative overflow-hidden flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl border transition-all duration-300 ${
+                todo.completed
+                    ? 'bg-[rgba(var(--card-bg),0.05)] border-transparent opacity-50'
+                    : 'glass-panel hover:border-[rgba(var(--text-primary),0.3)]'
+                }`}
+            >
+                {/* Colored Stripe Indicator */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${styles.stripe}`} />
 
-            <div className="flex items-center gap-1 md:gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                <button
-                onClick={() => startEdit(todo)}
-                className="p-1.5 md:p-2 hover:bg-[rgba(var(--text-primary),0.1)] rounded-lg"
-                >
-                <Edit3 className="w-4 h-4 md:w-5 md:h-5" />
+                <button onClick={() => toggleTodo(todo.id)} className="flex-shrink-0 hover:opacity-70 transition-opacity p-1 ml-2">
+                {todo.completed ? <CheckCircle className="w-5 h-5 md:w-6 md:h-6 opacity-60" /> : <Circle className="w-5 h-5 md:w-6 md:h-6" />}
                 </button>
-                <button
-                onClick={() => deleteTodo(todo.id)}
-                className="p-1.5 md:p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg"
-                >
-                <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
-                </button>
+                
+                <div className="flex-1 min-w-0">
+                <p className={`text-lg md:text-xl truncate ${todo.completed ? 'line-through' : ''}`}>
+                    {todo.text}
+                </p>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <span className={`text-[10px] md:text-xs px-2 py-0.5 rounded-full uppercase tracking-wider font-bold opacity-70 ${styles.badge}`}>
+                        {todo.category}
+                    </span>
+                    {todo.dueDate && (
+                        <span className="flex items-center gap-1 text-[10px] md:text-xs opacity-50 font-mono">
+                        <Calendar className="w-3 h-3" />
+                        {format(new Date(todo.dueDate), 'MMM d, h:mm a')}
+                        </span>
+                    )}
+                </div>
+                </div>
+
+                <div className="flex items-center gap-1 md:gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <button
+                    onClick={() => startEdit(todo)}
+                    className="p-1.5 md:p-2 hover:bg-[rgba(var(--text-primary),0.1)] rounded-lg"
+                    >
+                    <Edit3 className="w-4 h-4 md:w-5 md:h-5" />
+                    </button>
+                    <button
+                    onClick={() => deleteTodo(todo.id)}
+                    className="p-1.5 md:p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg"
+                    >
+                    <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                    </button>
+                </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
        {/* Edit Modal */}

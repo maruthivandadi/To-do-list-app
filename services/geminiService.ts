@@ -1,25 +1,45 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { TimetableResponse } from "../types";
 
-// Safely access process.env to prevent ReferenceErrors in browser environments without shims
+// Robust API Key retrieval for various environments (Vite, CRA, Vercel)
 const getApiKey = () => {
+  let key = "";
+
+  // 1. Try Vite (most likely for this project structure on Vercel)
   try {
-    return process.env.API_KEY || "";
-  } catch (e) {
-    return "";
-  }
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      key = import.meta.env.VITE_API_KEY || import.meta.env.API_KEY || "";
+    }
+  } catch (e) {}
+
+  if (key) return key;
+
+  // 2. Try Standard Process Env (CRA / Next.js / Node)
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      key = process.env.REACT_APP_API_KEY || process.env.API_KEY || "";
+    }
+  } catch (e) {}
+
+  return key;
 };
 
 const GEMINI_API_KEY = getApiKey();
 
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+// Initialize AI only if key exists to prevent immediate crash, handle check inside function
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY || "dummy_key_to_prevent_init_crash" });
 
 export const extractScheduleFromImage = async (
   base64Data: string,
   mimeType: string
 ): Promise<TimetableResponse> => {
-  if (!GEMINI_API_KEY) {
-    throw new Error("API Key is missing. Please configure the API_KEY environment variable in your deployment settings.");
+  // Check key at runtime when action is performed
+  if (!getApiKey() || getApiKey() === "dummy_key_to_prevent_init_crash") {
+    throw new Error(
+      "API Key is missing. In Vercel Settings > Environment Variables, add a new variable with Name: 'VITE_API_KEY' and Value: 'Your AIza... key'."
+    );
   }
 
   try {
@@ -84,7 +104,6 @@ export const extractScheduleFromImage = async (
     
   } catch (error: any) {
     console.error("Error extracting schedule:", error);
-    // Pass through the specific error message
     throw new Error(error.message || "Failed to analyze image.");
   }
 };
