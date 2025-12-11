@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, CheckCircle, Circle, Edit3, Save, X, ArrowUpDown, Calendar } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, Circle, Edit3, Save, X, ArrowUpDown, Calendar, Clock } from 'lucide-react';
 import { Todo } from '../types';
-import { format } from 'date-fns';
+import { format, addDays, startOfToday, set } from 'date-fns';
 
 interface TodoListProps {
   todos: Todo[];
@@ -15,20 +15,56 @@ const TodoList: React.FC<TodoListProps> = ({ todos, setTodos }) => {
   const [editText, setEditText] = useState('');
   const [sortBy, setSortBy] = useState<'default' | 'dueDate'>('default');
 
-  const handleAddTodo = (e: React.FormEvent) => {
+  // Schedule Modal State
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [dateOption, setDateOption] = useState<'today' | 'tomorrow' | 'custom' | null>(null);
+  const [customDate, setCustomDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+
+  const initiateAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTodo.trim()) return;
+    
+    // Reset and open modal
+    setDateOption(null);
+    setCustomDate('');
+    setSelectedTime('');
+    setShowScheduleModal(true);
+  };
+
+  const confirmAddTodo = () => {
+    let finalDate: Date | undefined;
+
+    if (dateOption === 'today') {
+      finalDate = startOfToday();
+    } else if (dateOption === 'tomorrow') {
+      finalDate = addDays(startOfToday(), 1);
+    } else if (dateOption === 'custom' && customDate) {
+      finalDate = new Date(customDate);
+    }
+
+    // Handle Time
+    if (selectedTime) {
+        const [hours, minutes] = selectedTime.split(':').map(Number);
+        if (finalDate) {
+            finalDate = set(finalDate, { hours, minutes });
+        } else {
+            // If time is set but no date, assume Today
+            finalDate = set(startOfToday(), { hours, minutes });
+        }
+    }
 
     const todo: Todo = {
       id: crypto.randomUUID(),
       text: newTodo,
       completed: false,
       category,
-      dueDate: new Date(),
+      dueDate: finalDate,
     };
 
     setTodos([...todos, todo]);
     setNewTodo('');
+    setShowScheduleModal(false);
   };
 
   const toggleTodo = (id: string) => {
@@ -55,10 +91,7 @@ const TodoList: React.FC<TodoListProps> = ({ todos, setTodos }) => {
     const sorted = [...todos];
     if (sortBy === 'dueDate') {
       sorted.sort((a, b) => {
-        // Always prioritize pending tasks at the top when sorting
         if (a.completed !== b.completed) return a.completed ? 1 : -1;
-        
-        // Sort by date (oldest/soonest first)
         if (!a.completed) {
           const timeA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
           const timeB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
@@ -82,7 +115,7 @@ const TodoList: React.FC<TodoListProps> = ({ todos, setTodos }) => {
   const visibleTodos = getSortedTodos();
 
   return (
-    <div className="h-full flex flex-col max-w-4xl mx-auto w-full">
+    <div className="h-full flex flex-col max-w-4xl mx-auto w-full relative">
       <div className="mb-6 md:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
             <h2 className="text-3xl md:text-4xl font-bold mb-2">Tasks & Goals</h2>
@@ -107,7 +140,7 @@ const TodoList: React.FC<TodoListProps> = ({ todos, setTodos }) => {
       </div>
 
       <div className="glass-panel rounded-2xl p-4 md:p-6 mb-6 md:mb-8 shadow-sm">
-        <form onSubmit={handleAddTodo} className="flex flex-col md:flex-row gap-3 md:gap-4">
+        <form onSubmit={initiateAddTodo} className="flex flex-col md:flex-row gap-3 md:gap-4">
           <input
             type="text"
             value={newTodo}
@@ -153,7 +186,6 @@ const TodoList: React.FC<TodoListProps> = ({ todos, setTodos }) => {
                     : 'glass-panel hover:border-[rgba(var(--text-primary),0.3)]'
                 }`}
             >
-                {/* Colored Stripe Indicator */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${styles.stripe}`} />
 
                 <button onClick={() => toggleTodo(todo.id)} className="flex-shrink-0 hover:opacity-70 transition-opacity p-1 ml-2">
@@ -196,7 +228,7 @@ const TodoList: React.FC<TodoListProps> = ({ todos, setTodos }) => {
         })}
       </div>
 
-       {/* Edit Modal */}
+       {/* Edit Task Modal */}
        {editingId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
               <div className="bg-[rgb(var(--bg-primary))] border border-[rgba(var(--text-primary),0.2)] rounded-2xl p-6 w-full max-w-md shadow-2xl">
@@ -218,6 +250,73 @@ const TodoList: React.FC<TodoListProps> = ({ todos, setTodos }) => {
                       <Save className="w-5 h-5" /> Save Changes
                   </button>
               </div>
+          </div>
+       )}
+
+       {/* Schedule Task Modal */}
+       {showScheduleModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-in fade-in zoom-in duration-200">
+            <div className="bg-[rgb(var(--bg-primary))] border border-[rgba(var(--text-primary),0.2)] rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">Schedule Task</h3>
+                <button onClick={() => setShowScheduleModal(false)}><X className="w-5 h-5 opacity-60 hover:opacity-100" /></button>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {['Today', 'Tomorrow', 'Date'].map((opt) => {
+                    const val = opt.toLowerCase() as any;
+                    const isSelected = dateOption === val || (val === 'date' && dateOption === 'custom');
+                    return (
+                      <button
+                        key={opt}
+                        onClick={() => setDateOption(val === 'date' ? 'custom' : val)}
+                        className={`py-2 px-1 rounded-lg text-sm font-medium transition-all border ${
+                          isSelected 
+                          ? 'bg-[rgb(var(--text-primary))] text-[rgb(var(--bg-primary))] border-[rgb(var(--text-primary))]'
+                          : 'bg-[rgba(var(--card-bg),0.1)] border-transparent hover:bg-[rgba(var(--text-primary),0.1)]'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    )
+                })}
+              </div>
+
+              {dateOption === 'custom' && (
+                <input 
+                  type="date"
+                  value={customDate}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                  className="w-full mb-4 p-3 rounded-xl bg-[rgba(var(--card-bg),0.1)] border border-[rgba(var(--text-primary),0.2)] outline-none font-[Inter]"
+                />
+              )}
+
+              <div className="flex items-center gap-3 mb-6 p-3 rounded-xl bg-[rgba(var(--card-bg),0.1)] border border-[rgba(var(--text-primary),0.2)]">
+                <Clock className="w-5 h-5 opacity-50" />
+                <input 
+                    type="time"
+                    value={selectedTime}
+                    onChange={(e) => setSelectedTime(e.target.value)}
+                    className="bg-transparent outline-none flex-1 font-[Inter]"
+                    placeholder="Set time (optional)"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button 
+                  onClick={() => setShowScheduleModal(false)}
+                  className="px-4 py-2 opacity-70 hover:opacity-100 font-bold"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmAddTodo}
+                  className="px-6 py-2 bg-[rgb(var(--text-primary))] text-[rgb(var(--bg-primary))] rounded-xl font-bold hover:opacity-90 shadow-lg"
+                >
+                  Add Task
+                </button>
+              </div>
+            </div>
           </div>
        )}
     </div>

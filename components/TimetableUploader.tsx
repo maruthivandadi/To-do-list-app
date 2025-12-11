@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, FileImage, FileText, Loader2, CheckCircle2, AlertCircle, HelpCircle, Terminal } from 'lucide-react';
+import { Upload, FileImage, FileText, Loader2, CheckCircle2, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { extractScheduleFromImage } from '../services/geminiService';
 import { ClassSession } from '../types';
 
@@ -110,16 +110,42 @@ const TimetableUploader: React.FC<TimetableUploaderProps> = ({ onImport }) => {
     }
   };
 
+  const handleManualEntry = () => {
+    // Pass empty array to switch view to Calendar
+    onImport([]);
+  };
+
+  const handleDemoImport = () => {
+    setIsLoading(true);
+    setError(null);
+    
+    // Simulate AI delay for effect
+    setTimeout(() => {
+        const demoClasses: ClassSession[] = [
+            { id: crypto.randomUUID(), day: 'Monday', subject: 'Mathematics', startTime: '09:00', endTime: '10:00', room: '101', color: 'bg-blue-500' },
+            { id: crypto.randomUUID(), day: 'Monday', subject: 'Physics', startTime: '10:00', endTime: '11:30', room: 'Lab A', color: 'bg-indigo-500' },
+            { id: crypto.randomUUID(), day: 'Tuesday', subject: 'History', startTime: '09:00', endTime: '10:30', room: '204', color: 'bg-orange-500' },
+            { id: crypto.randomUUID(), day: 'Tuesday', subject: 'Art', startTime: '13:00', endTime: '14:30', room: 'Studio', color: 'bg-pink-500' },
+            { id: crypto.randomUUID(), day: 'Wednesday', subject: 'Biology', startTime: '11:00', endTime: '12:30', room: 'Lab B', color: 'bg-green-500' },
+            { id: crypto.randomUUID(), day: 'Thursday', subject: 'Computer Science', startTime: '14:00', endTime: '15:30', room: '303', color: 'bg-purple-500' },
+            { id: crypto.randomUUID(), day: 'Friday', subject: 'English Lit', startTime: '10:00', endTime: '11:00', room: '102', color: 'bg-yellow-500' },
+        ];
+        onImport(demoClasses);
+        setSuccess(true);
+        setIsLoading(false);
+    }, 1500);
+  };
+
   return (
-    <div className="max-w-3xl mx-auto pt-4 md:pt-10">
-      <div className="glass-panel rounded-3xl p-6 md:p-10 shadow-lg text-center">
+    <div className="max-w-3xl mx-auto pt-4 md:pt-10 h-full flex flex-col justify-center">
+      <div className="glass-panel rounded-3xl p-6 md:p-10 shadow-lg text-center animate-in fade-in zoom-in duration-500">
         <div className="mb-6 md:mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">Import Schedule</h2>
-          <p className="text-lg md:text-xl opacity-70">Upload a photo or PDF of your timetable.</p>
+          <p className="text-lg md:text-xl opacity-70">Upload your timetable or start manually.</p>
         </div>
 
         <div
-          className={`relative border-2 border-dashed rounded-2xl p-6 md:p-12 transition-all duration-300 flex flex-col items-center justify-center min-h-[250px] md:min-h-[300px] ${
+          className={`relative border-2 border-dashed rounded-2xl p-6 md:p-12 transition-all duration-300 flex flex-col items-center justify-center min-h-[250px] md:min-h-[300px] mb-8 ${
             isDragging
               ? 'border-[rgb(var(--text-primary))] bg-[rgba(var(--text-primary),0.1)]'
               : 'border-[rgba(var(--text-primary),0.3)] hover:border-[rgb(var(--text-primary))] hover:bg-[rgba(var(--card-bg),0.1)]'
@@ -186,49 +212,56 @@ const TimetableUploader: React.FC<TimetableUploaderProps> = ({ onImport }) => {
                <p className="text-xl md:text-2xl font-bold">Success!</p>
                <p className="text-base md:text-lg opacity-60 mt-2">Schedule updated.</p>
              </div>
-             <button 
-                onClick={(e) => {
-                    e.preventDefault();
-                    setFile(null);
-                    setSuccess(false);
-                }}
-                className="mt-4 text-base md:text-lg underline z-10 relative opacity-70 hover:opacity-100 pointer-events-auto"
-             >
-                Upload another
-             </button>
            </div>
           )}
         </div>
         
+        {/* Error Display */}
         {error && (
-            <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex flex-col items-start gap-3 text-red-600 text-left">
+            <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex flex-col items-start gap-3 text-red-600 text-left">
                 <div className="flex items-center gap-3 w-full">
                     <AlertCircle className="w-6 h-6 flex-shrink-0" />
                     <p className="font-bold font-[Inter]">{error}</p>
                 </div>
                 
-                {errorType === 'missing_key' && (
+                {(errorType === 'missing_key' || errorType === 'invalid_key') && (
                     <div className="w-full mt-2 pl-9">
-                        <p className="text-sm opacity-80 mb-2">To fix this in Vercel:</p>
-                        <ol className="list-decimal list-inside text-sm space-y-1 opacity-80 font-[Inter]">
-                            <li>Go to <b>Settings</b> &gt; <b>Environment Variables</b></li>
-                            <li>Add Key: <code className="bg-red-500/20 px-1 rounded">VITE_API_KEY</code></li>
-                            <li>Add Value: Your Gemini API Key</li>
-                            <li><b>Important:</b> Redeploy via "Deployments" tab for changes to take effect.</li>
-                        </ol>
-                        <p className="text-xs mt-3 opacity-60">
-                           Also try <code className="bg-red-500/20 px-1 rounded">REACT_APP_API_KEY</code> if VITE_ prefix doesn't work.
+                        <p className="text-sm opacity-80 mb-2">
+                             The AI feature requires a configured API key. You can fix this in your deployment settings, or use the manual/demo options below.
                         </p>
                     </div>
                 )}
+            </div>
+        )}
 
-                 {errorType === 'invalid_key' && (
-                    <div className="w-full mt-2 pl-9">
-                        <p className="text-sm opacity-80 font-[Inter]">
-                            The API key provided is invalid or has expired. Please check your Google AI Studio dashboard and update the Environment Variable.
-                        </p>
+        {/* Alternative Options */}
+        {!success && !isLoading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t border-[rgba(var(--text-primary),0.1)]">
+                <button 
+                    onClick={handleDemoImport}
+                    className="flex items-center justify-center gap-3 p-4 rounded-xl bg-[rgba(var(--text-primary),0.05)] hover:bg-[rgba(var(--text-primary),0.1)] transition-colors group"
+                >
+                    <div className="p-2 rounded-full bg-purple-500/20 text-purple-600">
+                        <Sparkles className="w-5 h-5" />
                     </div>
-                )}
+                    <div className="text-left">
+                        <p className="font-bold">Try Demo Schedule</p>
+                        <p className="text-xs opacity-60">See how it looks instantly</p>
+                    </div>
+                </button>
+
+                <button 
+                    onClick={handleManualEntry}
+                    className="flex items-center justify-center gap-3 p-4 rounded-xl bg-[rgba(var(--text-primary),0.05)] hover:bg-[rgba(var(--text-primary),0.1)] transition-colors group"
+                >
+                    <div className="p-2 rounded-full bg-[rgb(var(--text-primary))] text-[rgb(var(--bg-primary))]">
+                        <ArrowRight className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                        <p className="font-bold">Skip & Enter Manually</p>
+                        <p className="text-xs opacity-60">Add classes yourself</p>
+                    </div>
+                </button>
             </div>
         )}
       </div>
