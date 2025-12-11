@@ -1,7 +1,7 @@
 {
   "name": "AuraPlan Planner",
   "short_name": "AuraPlan",
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#F8FAFC",
   "theme_color": "#F8FAFC",

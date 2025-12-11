@@ -1,7 +1,16 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { TimetableResponse } from "../types";
 
-const GEMINI_API_KEY = process.env.API_KEY || "";
+// Safely access process.env to prevent ReferenceErrors in browser environments without shims
+const getApiKey = () => {
+  try {
+    return process.env.API_KEY || "";
+  } catch (e) {
+    return "";
+  }
+};
+
+const GEMINI_API_KEY = getApiKey();
 
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
@@ -9,6 +18,10 @@ export const extractScheduleFromImage = async (
   base64Data: string,
   mimeType: string
 ): Promise<TimetableResponse> => {
+  if (!GEMINI_API_KEY) {
+    throw new Error("API Key is missing. Please configure the API_KEY environment variable in your deployment settings.");
+  }
+
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -57,11 +70,21 @@ export const extractScheduleFromImage = async (
     });
 
     const text = response.text;
-    if (!text) throw new Error("No response from AI");
+    if (!text) throw new Error("No response received from AI service.");
 
-    return JSON.parse(text) as TimetableResponse;
-  } catch (error) {
+    // Clean up potential markdown formatting (e.g. ```json ... ```)
+    const cleanedText = text.replace(/```json\n?|\n?```/g, '').trim();
+
+    try {
+        return JSON.parse(cleanedText) as TimetableResponse;
+    } catch (parseError) {
+        console.error("JSON Parse Error:", parseError, "Raw Text:", text);
+        throw new Error("Failed to parse AI response. Please try again with a clearer image.");
+    }
+    
+  } catch (error: any) {
     console.error("Error extracting schedule:", error);
-    throw error;
+    // Pass through the specific error message
+    throw new Error(error.message || "Failed to analyze image.");
   }
 };

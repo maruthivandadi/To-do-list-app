@@ -58,11 +58,16 @@ const TimetableUploader: React.FC<TimetableUploaderProps> = ({ onImport }) => {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64String = reader.result as string;
+        // Handle both Data URL formats: "data:image/png;base64,..."
         const base64Data = base64String.split(',')[1];
         
         try {
           const result = await extractScheduleFromImage(base64Data, file.type);
           
+          if (!result.schedule || result.schedule.length === 0) {
+             throw new Error("No classes found in the image. Please try a clearer image.");
+          }
+
           const newClasses: ClassSession[] = result.schedule.map(c => ({
             id: crypto.randomUUID(),
             subject: c.subject,
@@ -75,12 +80,17 @@ const TimetableUploader: React.FC<TimetableUploaderProps> = ({ onImport }) => {
 
           onImport(newClasses);
           setSuccess(true);
-        } catch (err) {
-            console.error(err)
-          setError("Failed to analyze. Please ensure the image is clear.");
+        } catch (err: any) {
+          console.error(err);
+          // Show the actual error message from the service
+          setError(err.message || "Failed to analyze. Please ensure the image is clear.");
         } finally {
           setIsLoading(false);
         }
+      };
+      reader.onerror = () => {
+          setError("Failed to read file.");
+          setIsLoading(false);
       };
       reader.readAsDataURL(file);
     } catch (e) {
@@ -182,7 +192,7 @@ const TimetableUploader: React.FC<TimetableUploaderProps> = ({ onImport }) => {
         {error && (
             <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-600">
                 <AlertCircle className="w-6 h-6 flex-shrink-0" />
-                <p className="font-bold">{error}</p>
+                <p className="font-bold font-[Inter]">{error}</p>
             </div>
         )}
       </div>
